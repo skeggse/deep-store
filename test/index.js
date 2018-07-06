@@ -102,6 +102,15 @@ describe('DeepStore', function() {
     expect(this.store.get(Array.from(k))).to.be.undefined;
   });
 
+  it('should not remove partially-matching values', function() {
+    this.store.set([1, 2, 3], 'v1');
+    const preEntries = Array.from(this.store);
+    expect(this.store.delete([1, 2, 3, 4])).to.be.false;
+    expect(Array.from(this.store)).to.deep.equal(preEntries);
+    expect(this.store.delete([1, 2, 4])).to.be.false;
+    expect(Array.from(this.store)).to.deep.equal(preEntries);
+  });
+
   it('should not report a child-only path', function() {
     const k1 = o(), k2 = o(), v = o();
     this.store.set([k1, k2], v);
