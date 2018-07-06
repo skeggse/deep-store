@@ -3,10 +3,6 @@
 const toString = Object.prototype.toString;
 const slice = Array.prototype.slice;
 
-function isArray(value) {
-  return toString.call(value) === '[object Array]';
-}
-
 class DeepNode {
   constructor() {
     this.valueMap = new Map();
@@ -62,7 +58,7 @@ class DeepStore {
   }
 
   get(keys) {
-    if (!isArray(keys) || !keys.length) {
+    if (!Array.isArray(keys) || !keys.length) {
       throw new TypeError('expected a non-empty array of keys');
     }
     const last = keys.length - 1;
@@ -75,7 +71,7 @@ class DeepStore {
   }
 
   has(keys) {
-    if (!isArray(keys) || !keys.length) {
+    if (!Array.isArray(keys) || !keys.length) {
       throw new TypeError('expected a non-empty array of keys');
     }
     const last = keys.length - 1;
@@ -88,7 +84,7 @@ class DeepStore {
   }
 
   set(keys, value) {
-    if (!isArray(keys) || !keys.length) {
+    if (!Array.isArray(keys) || !keys.length) {
       throw new TypeError('expected a non-empty array of keys');
     }
     const last = keys.length - 1;
@@ -109,7 +105,7 @@ class DeepStore {
   }
 
   delete(keys) {
-    if (!isArray(keys) || !keys.length) {
+    if (!Array.isArray(keys) || !keys.length) {
       throw new TypeError('expected a non-empty array of keys');
     }
     const nodes = new Array(keys.length - 1);
