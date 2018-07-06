@@ -147,4 +147,67 @@ describe('DeepStore', function() {
     }, s);
     expect(result).to.have.same.deep.members(Array.from(this.store));
   });
+
+  it('should support key-based intersections', function() {
+    let merged = this.store.keyIntersect(this.store);
+    expect(Array.from(merged)).to.deep.equal([]);
+
+    merged = this.store.keyIntersect(new DeepStore());
+    expect(Array.from(merged)).to.deep.equal([]);
+
+    const a = new DeepStore([
+      [['a'], 1],
+      [['b'], 1],
+    ]), b = new DeepStore([
+      [['a'], 1],
+      [['c'], 1],
+    ]);
+
+    expect(Array.from(a.keyIntersect(b))).to.have.same.deep.members([[['a'], 1]]);
+
+    const permissive = new DeepStore([
+      [['a'], 1],
+    ]), strict = new DeepStore([
+      [['a', 'b'], 1],
+      [['a', 'c'], 1],
+    ]);
+
+    expect(Array.from(permissive.keyIntersect(strict))).to.have.same.deep.members(Array.from(strict));
+    expect(Array.from(strict.keyIntersect(permissive))).to.have.same.deep.members(Array.from(strict));
+
+    const exclusiveA = new DeepStore([
+      [['a', 'b'], 1],
+      [['a', 'd'], 1],
+    ]), exclusiveB = new DeepStore([
+      [['a', 'c'], 1],
+      [['a', 'e'], 1],
+    ]);
+
+    expect(Array.from(exclusiveA.keyIntersect(exclusiveB))).to.deep.equal([]);
+  });
+
+  it('should produce the expected intersection for the README example', function() {
+    const permittedFields = new DeepStore([
+      [['user'], 1],
+      [['share'], 1],
+      [['content'], 1],
+    ]);
+
+    // Generated from user-provided fields.
+    const apiFields = new DeepStore([
+      [['user', 'name'], 1],
+      [['share'], 1],
+      [['accessToken'], 1],
+    ]);
+
+    // The other of {permittedFields, apiFields} doesn't matter - we're intersecting
+    // here, so it's commutative.
+    const selectedFields = permittedFields.keyIntersect(apiFields);
+
+    // Produces a DeepStore with these entries:
+    expect(Array.from(selectedFields)).to.have.same.deep.members([
+      [['user', 'name'], 1],
+      [['share'], 1],
+    ]);
+  });
 });

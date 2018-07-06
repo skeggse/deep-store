@@ -9,6 +9,18 @@ class DeepNode {
     this.children = new Map();
   }
 
+  *suffixEntries(prefix, suffix) {
+    let key = null;
+    if (this.valueMap.has(suffix)) {
+      key = [...prefix, suffix];
+      yield [key, this.valueMap.get(suffix)];
+    }
+    if (this.children.has(suffix)) {
+      key || (key = [...prefix, suffix]);
+      yield* this.children.get(suffix).entries(key);
+    }
+  }
+
   *entries(prefix) {
     for (const [suffix, value] of this.valueMap) {
       yield [[...prefix, suffix], value];
@@ -31,6 +43,38 @@ class DeepNode {
     yield* this.valueMap.values();
     for (const [suffix, child] of this.children) {
       yield* child.values();
+    }
+  }
+
+  *keyIntersect(other, prefix) {
+    let ownSuffixes = new Set([...this.valueMap.keys(), ...this.children.keys()]);
+
+    // Compute the suffix keys that are common between the two nodes.
+    const commonSuffixes = new Set();
+    for (const otherKeys of [other.valueMap.keys(), other.children.keys()]) {
+      for (const suffix of otherKeys) {
+        if (ownSuffixes.has(suffix)) {
+          commonSuffixes.add(suffix);
+        }
+      }
+    }
+
+    // So we can GC, in case we're doing a massive intersection.
+    ownSuffixes = null;
+
+    for (const suffix of commonSuffixes) {
+      // If we have a value for the suffix, then defer to the other node's tree
+      // as it may have more specific children.
+      if (this.valueMap.has(suffix)) {
+        yield* other.suffixEntries(prefix, suffix);
+      } else if (other.valueMap.has(suffix)) {
+        yield* this.suffixEntries(prefix, suffix);
+      } else {
+        // We have children for this suffix in both DeepStores, so we need to
+        // recurse and intersect more keys.
+        yield* this.children.get(suffix)
+          .keyIntersect(other.children.get(suffix), [...prefix, suffix]);
+      }
     }
   }
 }
@@ -153,6 +197,17 @@ class DeepStore {
     for (const [keys, value] of this.entries()) {
       fn.call(me, value, keys, this);
     }
+  }
+
+  keyIntersect(other) {
+    if (this === other) {
+      return new DeepStore(this);
+    }
+    // Duck typing.
+    if (!other || typeof other !== 'object' || typeof other.keyIntersect !== 'function') {
+      throw new TypeError('expected a DeepStore-compatible object');
+    }
+    return new DeepStore(this._root.keyIntersect(other._root, []));
   }
 }
 

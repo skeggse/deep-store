@@ -131,5 +131,44 @@ Array.from(store.values());
 // ]
 ```
 
+### `DeepStore#keyIntersect(other)`
+
+Find the deep intersection of keys between two deep store instances. This method assumes that the deep stores do not have values stored at paths that also have children, and you may see inconsistencies if you attempt to use `keyIntersect` on such stores. We're also only concerned with the intersection of the keys, so we take values arbitrarily from the two stores. If one store has a value at `['a', 'b']`, and the other has a value at `['a', 'b', 'c']` (and no other values under `['a']`, or `['a', 'b']`) then we'll output only the key-value pair from `['a', 'b', 'c']`. This method is intended to support the merging of two MongoDB-style `fields` sets, such that one store can define the permitted fields, and the other can deeply refine those fields (see caveats below the code snippet):
+
+```js
+const permittedFields = new DeepStore([
+  [['user'], 1],
+  [['share'], 1],
+  [['content'], 1],
+]);
+
+// Generated from user-provided fields.
+const apiFields = new DeepStore([
+  // Just select the user's name, but not any other user data.
+  [['user', 'name'], 1],
+
+  // We'll select all fields from share.
+  [['share'], 1],
+
+  // We don't include 'content' here, so we'll exclude it entirely from the
+  // intersection.
+
+  // Discarded on intersection, as it's not included by permittedFields.
+  [['accessToken'], 1],
+]);
+
+// The other of {permittedFields, apiFields} doesn't matter - we're intersecting
+// here, so it's commutative.
+const selectedFields = permittedFields.keyIntersect(apiFields);
+
+// Produces a DeepStore with these entries:
+const selectedFields = new DeepStore([
+  [['user', 'name'], 1],
+  [['share'], 1],
+]);
+```
+
+Take note that we don't examine the values, so don't include a `0` as a value in `permittedFields` and expect it to exclude that field. You should either use a different solution or submit a pull request if you want to be able to blacklist keys within whitelisted keys.
+
 [Map]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map "Map - JavaScript &vert; MDN"
 [spread operator]: https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Operators/Spread_operator "Spread syntax - JavaScript &vert; MDN"
